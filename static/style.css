@@ -78,7 +78,10 @@ body { display: flex; height: 100vh; }
 
 /* ── Sidebar footer ───────────────────────────────────────────────────────── */
 .sidebar-footer {
-  margin-top: auto; display: flex; align-items: center; gap: 8px;
+  margin-top: auto; display: flex; flex-direction: column; gap: 8px;
+}
+.sidebar-status {
+  display: flex; align-items: center; gap: 8px;
   font-size: 12px; color: var(--text-muted);
 }
 
@@ -341,13 +344,13 @@ body { display: flex; height: 100vh; }
 .modal-info { font-size: 12px; color: var(--text-muted); }
 
 /* ── Sidebar footer config button ────────────────────────────────────────── */
-.sidebar-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .config-open-btn {
-  margin-left: auto; background: none; border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: 6px; padding: 3px 8px;
-  font-size: 11px; cursor: pointer; transition: all 0.15s;
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: 8px; padding: 8px 12px;
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  text-align: left;
 }
-.config-open-btn:hover { border-color: var(--accent); color: var(--text); }
+.config-open-btn:hover { border-color: var(--accent); color: var(--text); background: var(--surface3); }
 
 /* ── Config modal ─────────────────────────────────────────────────────────── */
 .config-modal { width: min(560px, 96vw); display: flex; flex-direction: column; gap: 16px; }
