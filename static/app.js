@@ -388,37 +388,71 @@ function downloadFile(url, name) {
 }
 
 /* ── Config / Model modal ────────────────────────────────────────────────────── */
-const configOpenBtn  = document.getElementById('configOpenBtn');
-const configOverlay  = document.getElementById('configOverlay');
-const configClose    = document.getElementById('configClose');
-const cfgSaveBtn     = document.getElementById('cfgSaveBtn');
-const cfgActiveLabel = document.getElementById('cfgActiveLabel');
-const pullRow        = document.getElementById('pullRow');
-const pullLog        = document.getElementById('pullLog');
-const pullBtn        = document.getElementById('pullBtn');
-const pullModelName  = document.getElementById('pullModelName');
+const configOpenBtn = document.getElementById('configOpenBtn');
+const configOverlay = document.getElementById('configOverlay');
+const configClose   = document.getElementById('configClose');
+const cfgSaveBtn    = document.getElementById('cfgSaveBtn');
+const pullRow       = document.getElementById('pullRow');
+const pullLog       = document.getElementById('pullLog');
+const pullBtn       = document.getElementById('pullBtn');
+const pullModelName = document.getElementById('pullModelName');
 
-let _cfgCatalogue = {};
-let _cfgProvider  = 'ollama';
-let _cfgModel     = '';
+// Two-slot state
+let _cfgCatalogue   = {};
+let _activeSlot     = 'agent';   // 'agent' | 'tasks'
+let _agentProvider  = 'ollama';
+let _agentModel     = '';
+let _tasksProvider  = 'ollama';
+let _tasksModel     = '';
+
+// Helpers to get/set active slot state
+function _getSlotProvider() { return _activeSlot === 'agent' ? _agentProvider : _tasksProvider; }
+function _getSlotModel()    { return _activeSlot === 'agent' ? _agentModel    : _tasksModel;    }
+function _setSlotProvider(p) { if (_activeSlot === 'agent') _agentProvider = p; else _tasksProvider = p; }
+function _setSlotModel(m)    { if (_activeSlot === 'agent') _agentModel    = m; else _tasksModel    = m; }
 
 configOpenBtn.addEventListener('click', openConfigModal);
 configClose.addEventListener('click',   () => configOverlay.classList.add('hidden'));
 configOverlay.addEventListener('click', e => { if (e.target === configOverlay) configOverlay.classList.add('hidden'); });
 
+// Slot tab (Chat Agent / Video Generation)
+document.querySelectorAll('.cfg-slot-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.cfg-slot-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    _activeSlot = tab.dataset.slot;
+
+    // Sync provider tabs to the newly active slot
+    const prov = _getSlotProvider();
+    document.querySelectorAll('.cfg-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.provider === prov);
+    });
+    document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('cfg-' + prov).classList.add('active');
+
+    renderAllModelLists();
+    updatePullRow();
+    updateSummary();
+  });
+});
+
+// Provider tab (Ollama / OpenAI / Anthropic)
 document.querySelectorAll('.cfg-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('cfg-' + tab.dataset.provider).classList.add('active');
-    _cfgProvider = tab.dataset.provider;
-    // Select first model for this provider if none chosen
-    const models = _cfgCatalogue[_cfgProvider] || [];
-    if (models.length && !models.find(m => m.id === _cfgModel)) {
-      selectModel(_cfgProvider, models[0].id);
+    _setSlotProvider(tab.dataset.provider);
+
+    // Auto-select first model in new provider if current model isn't in it
+    const models = _cfgCatalogue[tab.dataset.provider] || [];
+    if (models.length && !models.find(m => m.id === _getSlotModel())) {
+      _setSlotModel(models[0].id);
     }
-    updateActiveLabel();
+    renderAllModelLists();
+    updatePullRow();
+    updateSummary();
   });
 });
 
@@ -427,83 +461,99 @@ async function openConfigModal() {
   try {
     const res  = await fetch('/api/config');
     const data = await res.json();
-    _cfgCatalogue = data.catalogue;
-    _cfgProvider  = data.current.provider;
-    _cfgModel     = data.current.model;
+    _cfgCatalogue  = data.catalogue;
+    _agentProvider = data.current.agent_provider;
+    _agentModel    = data.current.agent_model;
+    _tasksProvider = data.current.tasks_provider;
+    _tasksModel    = data.current.tasks_model;
+    _activeSlot    = 'agent';
 
-    // Pre-fill API keys if present
+    // Pre-fill API key placeholders
     if (data.current.has_openai_key)    document.getElementById('openaiKey').placeholder    = '••••••••  (saved)';
     if (data.current.has_anthropic_key) document.getElementById('anthropicKey').placeholder = '••••••••  (saved)';
 
-    // Activate the right tab
+    // Activate agent slot tab
+    document.querySelectorAll('.cfg-slot-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.slot === 'agent');
+    });
+
+    // Activate the provider tab for the agent slot
+    const prov = _agentProvider;
     document.querySelectorAll('.cfg-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.provider === _cfgProvider);
+      t.classList.toggle('active', t.dataset.provider === prov);
     });
     document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('cfg-' + _cfgProvider).classList.add('active');
+    document.getElementById('cfg-' + prov).classList.add('active');
 
-    // Render model lists
-    renderModelList('ollama',    _cfgCatalogue.ollama    || []);
-    renderModelList('openai',    _cfgCatalogue.openai    || []);
-    renderModelList('anthropic', _cfgCatalogue.anthropic || []);
-
-    updateActiveLabel();
+    renderAllModelLists();
+    updatePullRow();
+    updateSummary();
   } catch(e) {
-    cfgActiveLabel.textContent = 'Could not load config';
+    document.getElementById('cfgAgentLabel').textContent = 'Could not load config';
   }
 }
 
-function renderModelList(provider, models) {
-  const container = document.getElementById(provider + 'ModelList');
-  container.innerHTML = '';
-  models.forEach(m => {
-    const row = document.createElement('div');
-    row.className = 'cfg-model-row' + (m.id === _cfgModel && provider === _cfgProvider ? ' selected' : '');
-    row.dataset.id = m.id;
-    row.innerHTML = `<span class="cfg-model-name">${m.name}</span><span class="cfg-model-note">${m.note}</span>`;
-    row.addEventListener('click', () => selectModel(provider, m.id));
-    container.appendChild(row);
+function renderAllModelLists() {
+  ['ollama', 'openai', 'anthropic'].forEach(prov => {
+    const models    = _cfgCatalogue[prov] || [];
+    const container = document.getElementById(prov + 'ModelList');
+    container.innerHTML = '';
+    models.forEach(m => {
+      const row = document.createElement('div');
+      const isSelected = m.id === _getSlotModel() && prov === _getSlotProvider();
+      row.className = 'cfg-model-row' + (isSelected ? ' selected' : '');
+      row.dataset.id = m.id;
+      row.innerHTML = `<span class="cfg-model-name">${m.name}</span><span class="cfg-model-note">${m.note}</span>`;
+      row.addEventListener('click', () => selectModel(prov, m.id));
+      container.appendChild(row);
+    });
   });
 }
 
 function selectModel(provider, modelId) {
-  _cfgProvider = provider;
-  _cfgModel    = modelId;
+  _setSlotProvider(provider);
+  _setSlotModel(modelId);
 
-  // Update selection highlight
+  // Update highlight across all lists
   document.querySelectorAll('.cfg-model-row').forEach(r => {
-    r.classList.toggle('selected', r.dataset.id === modelId);
+    r.classList.toggle('selected', r.dataset.id === modelId && r.closest('[id$="ModelList"]').id === provider + 'ModelList');
   });
 
-  // Show pull button only for Ollama models that may not be installed
-  if (provider === 'ollama') {
-    pullModelName.textContent = modelId;
+  updatePullRow();
+  updateSummary();
+}
+
+function updatePullRow() {
+  const provider = _getSlotProvider();
+  const model    = _getSlotModel();
+  if (provider === 'ollama' && model) {
+    pullModelName.textContent = model;
     pullRow.classList.remove('hidden');
     pullLog.classList.add('hidden');
     pullLog.innerHTML = '';
   } else {
     pullRow.classList.add('hidden');
   }
-
-  updateActiveLabel();
 }
 
-function updateActiveLabel() {
-  const providerLabel = { ollama: 'Ollama', openai: 'OpenAI', anthropic: 'Anthropic' };
-  cfgActiveLabel.textContent = _cfgModel
-    ? `Active: ${providerLabel[_cfgProvider]} / ${_cfgModel}`
-    : 'No model selected';
+function updateSummary() {
+  const provLabel = { ollama: 'Ollama', openai: 'OpenAI', anthropic: 'Anthropic' };
+  document.getElementById('cfgAgentLabel').textContent =
+    _agentModel ? `${provLabel[_agentProvider]} / ${_agentModel}` : '—';
+  document.getElementById('cfgTasksLabel').textContent =
+    _tasksModel ? `${provLabel[_tasksProvider]} / ${_tasksModel}` : '—';
 }
 
 pullBtn.addEventListener('click', async () => {
+  const model = _getSlotModel();
   pullBtn.disabled = true;
   pullLog.classList.remove('hidden');
   pullLog.innerHTML = '';
 
-  const res    = await fetch('/api/config/pull', {
+  const res     = await fetch('/api/config/pull', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: _cfgModel }),
+    body: JSON.stringify({ model }),
   });
   const reader  = res.body.getReader();
   const decoder = new TextDecoder();
@@ -529,7 +579,7 @@ pullBtn.addEventListener('click', async () => {
         if (ev.done) {
           const d = document.createElement('div');
           d.className = ev.status === 'ok' ? 'cfg-pull-ok' : 'cfg-pull-err';
-          d.textContent = ev.status === 'ok' ? `✅ ${_cfgModel} installed` : '❌ Pull failed';
+          d.textContent = ev.status === 'ok' ? `✅ ${model} installed` : '❌ Pull failed';
           pullLog.appendChild(d);
         }
       } catch(_) {}
@@ -539,19 +589,21 @@ pullBtn.addEventListener('click', async () => {
 });
 
 cfgSaveBtn.addEventListener('click', async () => {
-  if (!_cfgModel) return;
+  if (!_agentModel && !_tasksModel) return;
   cfgSaveBtn.disabled = true;
   cfgSaveBtn.textContent = 'Saving…';
 
   const body = {
-    provider: _cfgProvider,
-    model:    _cfgModel,
-    openai_key:    document.getElementById('openaiKey').value.trim(),
-    anthropic_key: document.getElementById('anthropicKey').value.trim(),
+    agent_provider: _agentProvider,
+    agent_model:    _agentModel,
+    tasks_provider: _tasksProvider,
+    tasks_model:    _tasksModel,
+    openai_key:     document.getElementById('openaiKey').value.trim(),
+    anthropic_key:  document.getElementById('anthropicKey').value.trim(),
   };
 
   try {
-    const res = await fetch('/api/config', {
+    const res  = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

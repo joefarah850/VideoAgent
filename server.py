@@ -188,18 +188,22 @@ async def get_config():
     """Return current LLM config and model catalogue."""
     return {
         "current": {
-            "provider":      LLM_CONFIG["provider"],
-            "model":         LLM_CONFIG["model"],
-            "has_openai_key":    bool(LLM_CONFIG["openai_key"]),
-            "has_anthropic_key": bool(LLM_CONFIG["anthropic_key"]),
+            "agent_provider":  LLM_CONFIG["agent_provider"],
+            "agent_model":     LLM_CONFIG["agent_model"],
+            "tasks_provider":  LLM_CONFIG["tasks_provider"],
+            "tasks_model":     LLM_CONFIG["tasks_model"],
+            "has_openai_key":     bool(LLM_CONFIG["openai_key"]),
+            "has_anthropic_key":  bool(LLM_CONFIG["anthropic_key"]),
         },
         "catalogue": MODEL_CATALOGUE,
     }
 
 
 class ConfigSaveRequest(BaseModel):
-    provider: str
-    model: str
+    agent_provider: str
+    agent_model: str
+    tasks_provider: str
+    tasks_model: str
     openai_key: str = ""
     anthropic_key: str = ""
 
@@ -207,25 +211,29 @@ class ConfigSaveRequest(BaseModel):
 @app.post("/api/config")
 async def save_config(req: ConfigSaveRequest):
     """Update active LLM config and persist to .env."""
-    if req.provider not in ("ollama", "openai", "anthropic"):
-        raise HTTPException(status_code=400, detail="Invalid provider")
+    for p in (req.agent_provider, req.tasks_provider):
+        if p not in ("ollama", "openai", "anthropic"):
+            raise HTTPException(status_code=400, detail=f"Invalid provider: {p}")
 
-    LLM_CONFIG["provider"]      = req.provider
-    LLM_CONFIG["model"]         = req.model
+    LLM_CONFIG["agent_provider"] = req.agent_provider
+    LLM_CONFIG["agent_model"]    = req.agent_model
+    LLM_CONFIG["tasks_provider"] = req.tasks_provider
+    LLM_CONFIG["tasks_model"]    = req.tasks_model
     if req.openai_key:
         LLM_CONFIG["openai_key"]    = req.openai_key
     if req.anthropic_key:
         LLM_CONFIG["anthropic_key"] = req.anthropic_key
 
-    # Persist to .env so it survives restarts
     _write_env({
-        "LLM_PROVIDER":      req.provider,
-        "LLM_MODEL":         req.model,
+        "AGENT_LLM_PROVIDER": req.agent_provider,
+        "AGENT_LLM_MODEL":    req.agent_model,
+        "TASKS_LLM_PROVIDER": req.tasks_provider,
+        "TASKS_LLM_MODEL":    req.tasks_model,
         **( {"OPENAI_API_KEY":    req.openai_key}    if req.openai_key    else {} ),
         **( {"ANTHROPIC_API_KEY": req.anthropic_key} if req.anthropic_key else {} ),
     })
 
-    return {"ok": True, "provider": req.provider, "model": req.model}
+    return {"ok": True}
 
 
 @app.post("/api/config/pull")

@@ -111,47 +111,67 @@
 <div class="modal-overlay hidden" id="configOverlay">
   <div class="modal config-modal">
     <button class="modal-close" id="configClose">✕</button>
-    <h2 class="setup-title">LLM Settings</h2>
+    <h2 class="setup-title">Model Settings</h2>
 
-    <!-- Provider tabs -->
-    <div class="cfg-tabs">
-      <button class="cfg-tab active" data-provider="ollama">🖥 Ollama (Local)</button>
-      <button class="cfg-tab" data-provider="openai">OpenAI</button>
-      <button class="cfg-tab" data-provider="anthropic">Anthropic</button>
-    </div>
-
-    <!-- Ollama panel -->
-    <div class="cfg-panel active" id="cfg-ollama">
-      <p class="cfg-note">Runs entirely on your machine. No API key needed.</p>
-      <label class="cfg-label">Model</label>
-      <div class="cfg-model-list" id="ollamaModelList"><!-- filled by JS --></div>
-      <div class="cfg-pull-row hidden" id="pullRow">
-        <span id="pullModelName"></span>
-        <button class="btn-cfg-action" id="pullBtn">⬇ Install Model</button>
+    <!-- API Keys (shared) -->
+    <div class="cfg-keys-row">
+      <div class="cfg-key-field">
+        <label class="cfg-label">OpenAI API Key</label>
+        <input type="password" class="cfg-input" id="openaiKey" placeholder="sk-…" autocomplete="off"/>
       </div>
-      <div class="cfg-pull-log hidden" id="pullLog"></div>
+      <div class="cfg-key-field">
+        <label class="cfg-label">Anthropic API Key</label>
+        <input type="password" class="cfg-input" id="anthropicKey" placeholder="sk-ant-…" autocomplete="off"/>
+      </div>
     </div>
 
-    <!-- OpenAI panel -->
-    <div class="cfg-panel" id="cfg-openai">
-      <p class="cfg-note">Requires an OpenAI API key. Billed per use.</p>
-      <label class="cfg-label">API Key</label>
-      <input type="password" class="cfg-input" id="openaiKey" placeholder="sk-…" autocomplete="off"/>
-      <label class="cfg-label" style="margin-top:12px">Model</label>
-      <div class="cfg-model-list" id="openaiModelList"><!-- filled by JS --></div>
+    <!-- Slot tabs -->
+    <div class="cfg-slot-tabs">
+      <button class="cfg-slot-tab active" data-slot="agent">
+        🤖 Chat Agent
+        <span class="cfg-slot-sub">Tool calling &amp; reasoning</span>
+      </button>
+      <button class="cfg-slot-tab" data-slot="tasks">
+        🎬 Video Generation
+        <span class="cfg-slot-sub">Scripts, analysis, Blender code</span>
+      </button>
     </div>
 
-    <!-- Anthropic panel -->
-    <div class="cfg-panel" id="cfg-anthropic">
-      <p class="cfg-note">Requires an Anthropic API key. Billed per use.</p>
-      <label class="cfg-label">API Key</label>
-      <input type="password" class="cfg-input" id="anthropicKey" placeholder="sk-ant-…" autocomplete="off"/>
-      <label class="cfg-label" style="margin-top:12px">Model</label>
-      <div class="cfg-model-list" id="anthropicModelList"><!-- filled by JS --></div>
+    <!-- Per-slot content (same structure, driven by JS) -->
+    <div id="slotPanel">
+      <!-- Provider tabs -->
+      <div class="cfg-tabs">
+        <button class="cfg-tab active" data-provider="ollama">🖥 Ollama (Local)</button>
+        <button class="cfg-tab" data-provider="openai">OpenAI</button>
+        <button class="cfg-tab" data-provider="anthropic">Anthropic</button>
+      </div>
+
+      <div class="cfg-panel active" id="cfg-ollama">
+        <p class="cfg-note">Runs entirely on your machine. No API key needed.</p>
+        <div class="cfg-model-list" id="ollamaModelList"></div>
+        <div class="cfg-pull-row hidden" id="pullRow">
+          <span id="pullModelName"></span>
+          <button class="btn-cfg-action" id="pullBtn">⬇ Install Model</button>
+        </div>
+        <div class="cfg-pull-log hidden" id="pullLog"></div>
+      </div>
+
+      <div class="cfg-panel" id="cfg-openai">
+        <p class="cfg-note">Requires an OpenAI API key above. Billed per use.</p>
+        <div class="cfg-model-list" id="openaiModelList"></div>
+      </div>
+
+      <div class="cfg-panel" id="cfg-anthropic">
+        <p class="cfg-note">Requires an Anthropic API key above. Billed per use.</p>
+        <div class="cfg-model-list" id="anthropicModelList"></div>
+      </div>
     </div>
 
     <div class="cfg-footer">
-      <span class="cfg-active-label" id="cfgActiveLabel"></span>
+      <div class="cfg-summary">
+        <div class="cfg-summary-row">🤖 Agent: <strong id="cfgAgentLabel">—</strong></div>
+        <div class="cfg-summary-row">🎬 Tasks: <strong id="cfgTasksLabel">—</strong></div>
+      </div>
       <button class="btn-cfg-save" id="cfgSaveBtn">Save &amp; Apply</button>
     </div>
   </div>
