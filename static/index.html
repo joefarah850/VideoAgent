@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Video Agent</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="logo">
+    <span class="logo-icon">🎬</span>
+    <span class="logo-text">VideoAgent</span>
+  </div>
+
+  <nav class="quick-actions">
+    <p class="nav-label">Quick Actions</p>
+    <button class="action-btn setup-btn" id="setupBtn">
+      <span class="action-icon">⚙️</span> Setup / Install
+    </button>
+    <button class="action-btn" data-prompt="Extract the 5 most viral clips from the uploaded video. Add captions and compose final portrait clips for Instagram Reels.">
+      <span class="action-icon">✂️</span> Extract Viral Clips
+    </button>
+    <button class="action-btn" data-prompt="Generate a 10-second 3D cinematic animation. Craft an optimised prompt first, then use the space_scene template.">
+      <span class="action-icon">🌌</span> 3D Animation
+    </button>
+    <button class="action-btn" data-prompt="Generate 10 viral short-form video ideas for this niche: [YOUR NICHE HERE]. Also write a full script for the best idea." data-select="[YOUR NICHE HERE]">
+      <span class="action-icon">💡</span> Content Ideas
+    </button>
+    <button class="action-btn" data-prompt="List available voice profiles in Voicebox, then generate a voiceover for this topic: [YOUR TOPIC HERE]" data-select="[YOUR TOPIC HERE]">
+      <span class="action-icon">🎙️</span> Voice Over
+    </button>
+    <button class="action-btn" data-prompt="Generate an abstract geometric 3D animation using the abstract_geometric template with the concept: [YOUR CONCEPT HERE]" data-select="[YOUR CONCEPT HERE]">
+      <span class="action-icon">🔮</span> Abstract Animate
+    </button>
+    <button class="action-btn" data-prompt="Create a full viral content pipeline for the uploaded video: transcribe → find top 3 viral moments → extract clips → add captions → generate voiceover → compose final portrait clips.">
+      <span class="action-icon">🚀</span> Full Pipeline
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Ready</span>
+    <button class="config-open-btn" id="configOpenBtn" title="LLM Settings">⚙ Model</button>
+  </div>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Upload bar -->
+  <div class="upload-bar" id="uploadBar">
+    <div class="upload-zone" id="uploadZone">
+      <span class="upload-icon">📁</span>
+      <span>Drop a video or audio file here, or <label for="fileInput" class="upload-link">browse</label></span>
+      <input type="file" id="fileInput" accept="video/*,audio/*" hidden />
+    </div>
+    <div class="uploaded-file hidden" id="uploadedFile">
+      <span class="file-icon">🎥</span>
+      <span id="uploadedFileName"></span>
+      <span class="file-path" id="uploadedFilePath"></span>
+      <button class="clear-btn" id="clearUpload">✕</button>
+    </div>
+  </div>
+
+  <!-- Chat messages -->
+  <div class="chat-area" id="chatArea"></div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <textarea
+      id="chatInput"
+      class="chat-input"
+      placeholder="Ask the agent to edit your video, generate ideas, create animations…"
+      rows="1"
+    ></textarea>
+    <button class="send-btn" id="sendBtn" title="Send (Enter)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+</main>
+
+<!-- ── Files panel ─────────────────────────────────────────────────────────── -->
+<aside class="files-panel">
+  <div class="panel-header">
+    <span>Output Files</span>
+    <button class="refresh-btn" id="refreshFiles" title="Refresh">↻</button>
+  </div>
+  <div class="files-list" id="filesList">
+    <p class="empty-state">No output files yet</p>
+  </div>
+</aside>
+
+<!-- ── Video preview modal ─────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <video id="modalVideo" controls></video>
+    <div class="modal-info" id="modalInfo"></div>
+  </div>
+</div>
+
+<!-- ── Config / Model modal ─────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="configOverlay">
+  <div class="modal config-modal">
+    <button class="modal-close" id="configClose">✕</button>
+    <h2 class="setup-title">LLM Settings</h2>
+
+    <!-- Provider tabs -->
+    <div class="cfg-tabs">
+      <button class="cfg-tab active" data-provider="ollama">🖥 Ollama (Local)</button>
+      <button class="cfg-tab" data-provider="openai">OpenAI</button>
+      <button class="cfg-tab" data-provider="anthropic">Anthropic</button>
+    </div>
+
+    <!-- Ollama panel -->
+    <div class="cfg-panel active" id="cfg-ollama">
+      <p class="cfg-note">Runs entirely on your machine. No API key needed.</p>
+      <label class="cfg-label">Model</label>
+      <div class="cfg-model-list" id="ollamaModelList"><!-- filled by JS --></div>
+      <div class="cfg-pull-row hidden" id="pullRow">
+        <span id="pullModelName"></span>
+        <button class="btn-cfg-action" id="pullBtn">⬇ Install Model</button>
+      </div>
+      <div class="cfg-pull-log hidden" id="pullLog"></div>
+    </div>
+
+    <!-- OpenAI panel -->
+    <div class="cfg-panel" id="cfg-openai">
+      <p class="cfg-note">Requires an OpenAI API key. Billed per use.</p>
+      <label class="cfg-label">API Key</label>
+      <input type="password" class="cfg-input" id="openaiKey" placeholder="sk-…" autocomplete="off"/>
+      <label class="cfg-label" style="margin-top:12px">Model</label>
+      <div class="cfg-model-list" id="openaiModelList"><!-- filled by JS --></div>
+    </div>
+
+    <!-- Anthropic panel -->
+    <div class="cfg-panel" id="cfg-anthropic">
+      <p class="cfg-note">Requires an Anthropic API key. Billed per use.</p>
+      <label class="cfg-label">API Key</label>
+      <input type="password" class="cfg-input" id="anthropicKey" placeholder="sk-ant-…" autocomplete="off"/>
+      <label class="cfg-label" style="margin-top:12px">Model</label>
+      <div class="cfg-model-list" id="anthropicModelList"><!-- filled by JS --></div>
+    </div>
+
+    <div class="cfg-footer">
+      <span class="cfg-active-label" id="cfgActiveLabel"></span>
+      <button class="btn-cfg-save" id="cfgSaveBtn">Save &amp; Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Setup modal ──────────────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="setupOverlay">
+  <div class="modal setup-modal">
+    <button class="modal-close" id="setupClose">✕</button>
+    <h2 class="setup-title">One-Click Setup</h2>
+    <p class="setup-desc">Installs Ollama, pulls the AI model, and sets up ffmpeg — no terminal needed.</p>
+    <button class="btn-setup-run" id="setupRunBtn">Install Everything</button>
+    <div class="setup-log hidden" id="setupLog"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

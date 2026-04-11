@@ -1,0 +1,114 @@
+/* Premiere Pro CEP panels use a dark system-font theme */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #1c1c1c;
+  --surface:    #252525;
+  --surface2:   #2e2e2e;
+  --border:     #3a3a3a;
+  --accent:     #7c3aed;
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --yellow:     #f59e0b;
+  --text:       #e0e0e0;
+  --text-muted: #888;
+  --text-faint: #555;
+  --font:       -apple-system, "Segoe UI", system-ui, sans-serif;
+  --radius:     6px;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 12px; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.logo   { font-weight: 700; font-size: 13px; letter-spacing: -0.2px; }
+.header-right { display: flex; align-items: center; gap: 6px; }
+.server-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); transition: background 0.3s; }
+.server-dot.ok    { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.server-dot.error { background: var(--red); }
+.server-label { font-size: 11px; color: var(--text-muted); }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.tab  { flex: 1; padding: 8px 0; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer; font-size: 12px; font-family: var(--font); transition: all 0.15s; }
+.tab:hover  { color: var(--text); background: var(--surface); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* ── Tab content ─────────────────────────────────────────────────────────── */
+.tab-content { display: none; flex: 1; overflow-y: auto; padding: 12px; flex-direction: column; gap: 10px; }
+.tab-content.active { display: flex; }
+.tab-content::-webkit-scrollbar { width: 4px; }
+.tab-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+.section       { display: flex; flex-direction: column; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+
+/* ── Form elements ───────────────────────────────────────────────────────── */
+.field-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.select, .input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text); padding: 6px 8px; font-size: 12px;
+  font-family: var(--font); outline: none;
+}
+.select:focus, .input:focus { border-color: var(--accent); }
+.checkbox-row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+.checkbox-row input[type="checkbox"] { accent-color: var(--accent); }
+.hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  padding: 8px 14px; border-radius: 5px; border: none; cursor: pointer;
+  font-size: 12px; font-family: var(--font); font-weight: 500;
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary   { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #6d28d9; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
+.full-width { width: 100%; }
+
+/* ── Project info ────────────────────────────────────────────────────────── */
+.project-info { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-size: 11px; color: var(--text-muted); line-height: 1.8; }
+.project-info strong { color: var(--text); }
+
+/* ── Log ─────────────────────────────────────────────────────────────────── */
+.log { background: #111; border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-size: 11px; font-family: "Menlo", monospace; color: #a3a3a3; max-height: 160px; overflow-y: auto; line-height: 1.7; }
+.log .log-tool   { color: #818cf8; }
+.log .log-result { color: var(--green); }
+.log .log-error  { color: var(--red); }
+
+/* ── Chat ────────────────────────────────────────────────────────────────── */
+.chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; min-height: 0; }
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); }
+
+.chat-msg { border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.55; max-width: 90%; word-break: break-word; }
+.chat-msg.user  { background: var(--accent); color: #fff; align-self: flex-end; }
+.chat-msg.agent { background: var(--surface2); border: 1px solid var(--border); align-self: flex-start; }
+
+.chat-input-row { display: flex; gap: 6px; align-items: flex-end; flex-shrink: 0; }
+.chat-textarea  { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; color: var(--text); padding: 7px 9px; font-family: var(--font); font-size: 12px; resize: none; outline: none; max-height: 80px; }
+.chat-textarea:focus { border-color: var(--accent); }
+
+/* ── Viral clip cards ────────────────────────────────────────────────────── */
+.viral-results { display: flex; flex-direction: column; gap: 8px; }
+.clip-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; }
+.clip-title    { font-weight: 600; font-size: 12px; }
+.clip-time     { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+.clip-hook     { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.clip-actions  { display: flex; gap: 6px; margin-top: 3px; }
+.clip-action   { flex: 1; font-size: 11px; padding: 5px 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); cursor: pointer; text-align: center; transition: all 0.15s; }
+.clip-action:hover { color: var(--text); border-color: var(--accent); }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer      { flex-shrink: 0; padding: 6px 12px; border-top: 1px solid var(--border); background: var(--surface); }
+.status-text { font-size: 11px; color: var(--text-muted); }
+.progress-bar  { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; border-radius: 2px; }
+.progress-bar.indeterminate .progress-fill { animation: indeterminate 1.4s infinite ease-in-out; }
+@keyframes indeterminate { 0% { width: 0%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
+
+.hidden { display: none !important; }

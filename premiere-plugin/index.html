@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Video Agent</title>
+  <link rel="stylesheet" href="panel.css"/>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <span class="logo">🎬 AI Video Agent</span>
+    <div class="header-right">
+      <div class="server-dot" id="serverDot" title="Agent server connection"></div>
+      <span class="server-label" id="serverLabel">Connecting…</span>
+    </div>
+  </header>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+  <div class="tabs">
+    <button class="tab active" data-tab="auto">Auto Edit</button>
+    <button class="tab" data-tab="chat">Chat</button>
+    <button class="tab" data-tab="clips">Viral Clips</button>
+  </div>
+
+  <!-- ── Auto Edit tab ──────────────────────────────────────────────────── -->
+  <div class="tab-content active" id="tab-auto">
+
+    <div class="section">
+      <div class="section-title">Current Project</div>
+      <div class="project-info" id="projectInfo">Loading…</div>
+      <button class="btn btn-secondary full-width" id="refreshProject">↻ Refresh</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Auto Edit Options</div>
+
+      <label class="field-label">Style</label>
+      <select class="select" id="editStyle">
+        <option value="viral_horizontal">Viral Reels (portrait 9:16)</option>
+        <option value="fast_cuts">Fast Cuts – High Energy</option>
+        <option value="cinematic">Cinematic – Slow &amp; Dramatic</option>
+        <option value="documentary">Documentary – Clean Cuts</option>
+      </select>
+
+      <label class="field-label">Number of clips</label>
+      <input type="number" class="input" id="numClips" value="5" min="1" max="20"/>
+
+      <label class="field-label">Caption style</label>
+      <select class="select" id="captionStyle">
+        <option value="bold_bottom">Bold white – bottom</option>
+        <option value="none">No captions</option>
+        <option value="top">Top captions</option>
+      </select>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="addVoiceover" />
+        <label for="addVoiceover">Generate voiceover for each clip</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="exportToProject" checked/>
+        <label for="exportToProject">Import results into Premiere project</label>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn btn-primary full-width" id="runAutoEdit">
+        ▶ Run Auto Edit
+      </button>
+    </div>
+
+    <div class="log" id="autoLog" style="display:none"></div>
+
+  </div>
+
+  <!-- ── Chat tab ───────────────────────────────────────────────────────── -->
+  <div class="tab-content" id="tab-chat">
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" class="chat-textarea" placeholder="Ask the agent…" rows="2"></textarea>
+      <button class="btn btn-primary" id="chatSend">Send</button>
+    </div>
+  </div>
+
+  <!-- ── Viral Clips tab ────────────────────────────────────────────────── -->
+  <div class="tab-content" id="tab-clips">
+
+    <div class="section">
+      <div class="section-title">Export &amp; Analyse</div>
+      <p class="hint">Exports the active sequence to a temp file, then finds viral moments.</p>
+      <button class="btn btn-secondary full-width" id="exportAndAnalyse">
+        ① Export Active Sequence
+      </button>
+    </div>
+
+    <div class="viral-results hidden" id="viralResults">
+      <div class="section-title">Viral Moments Found</div>
+      <div id="viralList"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer: progress bar ───────────────────────────────────────────── -->
+  <div class="footer">
+    <div class="progress-bar hidden" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="status-text" id="statusText">Ready</div>
+  </div>
+
+  <script src="CSInterface.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>

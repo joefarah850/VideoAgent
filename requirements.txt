@@ -1,0 +1,41 @@
+# ── Core ──────────────────────────────────────────────────────────────────────
+litellm>=1.40.0         # unified interface for Ollama / OpenAI / Anthropic
+openai>=1.30.0
+anthropic>=0.49.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# ── Web UI server ─────────────────────────────────────────────────────────────
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.9
+
+# ── Transcription (local, free) ───────────────────────────────────────────────
+openai-whisper>=20231117
+# ffmpeg must be installed separately:
+#   macOS:   brew install ffmpeg
+#   Ubuntu:  sudo apt install ffmpeg
+
+# ── Video editing (ffmpeg-based, lightweight) ─────────────────────────────────
+# ffmpeg is the primary engine (called via subprocess).
+# moviepy is only used if ffmpeg is unavailable as a fallback.
+# moviepy>=2.0.0   # uncomment if you want the Python fallback
+
+# ── Voice cloning: Voicebox (free, local, open-source) ───────────────────────
+# Voicebox runs as a local server on port 17493.
+# Setup: git clone https://github.com/jamiepine/voicebox && just setup && just dev
+# Enable the local API in Voicebox Settings.
+# No pip package needed – requests handles the HTTP calls.
+
+# ── 3D Animation: Blender (free, local) ──────────────────────────────────────
+# Blender is called via subprocess (headless mode).
+# macOS:  brew install blender
+# Ubuntu: sudo apt install blender
+# Or download from https://www.blender.org/download/
+# No pip package needed.
+
+# ── Optional: faster cloud transcription ─────────────────────────────────────
+# assemblyai>=0.33.0   # uncomment if you have an AssemblyAI key
+
+# ── Optional: Pillow for any image manipulation ───────────────────────────────
+Pillow>=10.0.0
