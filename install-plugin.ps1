@@ -2,6 +2,7 @@
 # Run from the Agent-1 directory:  powershell -ExecutionPolicy Bypass -File install-plugin.ps1
 
 $ErrorActionPreference = "Stop"
+try {
 $BundleId   = "com.videoagent.plugin"
 $PluginSrc  = Join-Path $PSScriptRoot "premiere-plugin"
 $CepDir     = Join-Path $env:APPDATA "Adobe\CEP\extensions"
@@ -69,3 +70,10 @@ Write-Host "  2. Go to  Window -> Extensions -> AI Video Agent"
 Write-Host "  3. Start the agent server:  python server.py"
 Write-Host "  4. The panel status dot will turn green when connected"
 Write-Host "────────────────────────────────────────────────"
+} catch {
+    Write-Host ""
+    Write-Host "ERROR: $_" -ForegroundColor Red
+    Write-Host ""
+}
+Write-Host "Press any key to close..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
