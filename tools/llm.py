@@ -33,6 +33,13 @@ LLM_CONFIG: dict[str, Any] = {
     # API keys (shared across both slots)
     "openai_key":      os.getenv("OPENAI_API_KEY",     ""),
     "anthropic_key":   os.getenv("ANTHROPIC_API_KEY",  ""),
+
+    # AI video generation keys
+    "kling_key":       os.getenv("KLING_API_KEY",      ""),
+    "luma_key":        os.getenv("LUMA_API_KEY",       ""),
+    "runway_key":      os.getenv("RUNWAY_API_KEY",     ""),
+    "replicate_key":   os.getenv("REPLICATE_API_KEY",  ""),
+    "google_key":      os.getenv("GOOGLE_API_KEY",     ""),
 }
 
 # ── Model catalogues ──────────────────────────────────────────────────────────

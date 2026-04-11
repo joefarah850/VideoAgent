@@ -175,7 +175,7 @@ function appendAgentBubble() {
   return msg;
 }
 
-function appendThinking(content) {
+function appendThinking(_content) {
   const block = el('div', 'thinking-block');
   block.textContent = '💭 Thinking…';
   chatArea.appendChild(block);
@@ -185,7 +185,7 @@ function appendThinking(content) {
 // Track last tool card for result injection
 let _lastToolCard = null;
 
-function appendToolCard(toolName, toolInput, result) {
+function appendToolCard(toolName, toolInput, _result) {
   const card = el('div', 'tool-card');
   card.dataset.tool = toolName;
   card.innerHTML = `
@@ -469,8 +469,18 @@ async function openConfigModal() {
     _activeSlot    = 'agent';
 
     // Pre-fill API key placeholders
-    if (data.current.has_openai_key)    document.getElementById('openaiKey').placeholder    = '••••••••  (saved)';
-    if (data.current.has_anthropic_key) document.getElementById('anthropicKey').placeholder = '••••••••  (saved)';
+    const keyMap = {
+      openaiKey:    'has_openai_key',
+      anthropicKey: 'has_anthropic_key',
+      klingKey:     'has_kling_key',
+      lumaKey:      'has_luma_key',
+      runwayKey:    'has_runway_key',
+      replicateKey: 'has_replicate_key',
+      googleKey:    'has_google_key',
+    };
+    for (const [elId, flag] of Object.entries(keyMap)) {
+      if (data.current[flag]) document.getElementById(elId).placeholder = '••••••••  (saved)';
+    }
 
     // Activate agent slot tab
     document.querySelectorAll('.cfg-slot-tab').forEach(t => {
@@ -600,6 +610,11 @@ cfgSaveBtn.addEventListener('click', async () => {
     tasks_model:    _tasksModel,
     openai_key:     document.getElementById('openaiKey').value.trim(),
     anthropic_key:  document.getElementById('anthropicKey').value.trim(),
+    kling_key:      document.getElementById('klingKey').value.trim(),
+    luma_key:       document.getElementById('lumaKey').value.trim(),
+    runway_key:     document.getElementById('runwayKey').value.trim(),
+    replicate_key:  document.getElementById('replicateKey').value.trim(),
+    google_key:     document.getElementById('googleKey').value.trim(),
   };
 
   try {

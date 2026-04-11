@@ -353,7 +353,7 @@ body { display: flex; height: 100vh; }
 .config-open-btn:hover { border-color: var(--accent); color: var(--text); background: var(--surface3); }
 
 /* ── Config modal ─────────────────────────────────────────────────────────── */
-.config-modal { width: min(560px, 96vw); display: flex; flex-direction: column; gap: 16px; }
+.config-modal { width: min(600px, 96vw); display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow-y: auto; }
 
 .cfg-tabs { display: flex; gap: 6px; }
 .cfg-tab {
@@ -406,6 +406,33 @@ body { display: flex; height: 100vh; }
   display: flex; align-items: center; justify-content: space-between;
   padding-top: 8px; border-top: 1px solid var(--border);
 }
+/* slot tabs */
+.cfg-slot-tabs { display: flex; gap: 6px; }
+.cfg-slot-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 8px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 13px;
+  font-weight: 600; transition: all 0.15s;
+}
+.cfg-slot-tab .cfg-slot-sub { font-size: 10px; font-weight: 400; color: var(--text-faint); }
+.cfg-slot-tab:hover  { border-color: var(--accent); color: var(--text); }
+.cfg-slot-tab.active { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+.cfg-slot-tab.active .cfg-slot-sub { color: var(--text-muted); }
+
+/* keys row */
+.cfg-keys-row  { display: flex; gap: 12px; }
+.cfg-key-field { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cfg-key-note  { font-weight: 400; color: var(--text-faint); }
+
+/* video gen section label */
+.cfg-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-faint); margin-top: 2px; }
+
+/* summary */
+.cfg-summary { display: flex; flex-direction: column; gap: 3px; }
+.cfg-summary-row { font-size: 12px; color: var(--text-muted); }
+.cfg-summary-row strong { color: var(--text); }
+
 .cfg-active-label { font-size: 12px; color: var(--text-muted); }
 .btn-cfg-save {
   background: var(--accent); color: #fff; border: none; border-radius: 8px;

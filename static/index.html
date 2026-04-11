@@ -35,6 +35,9 @@
     <button class="action-btn" data-prompt="Generate an abstract geometric 3D animation using the abstract_geometric template with the concept: [YOUR CONCEPT HERE]" data-select="[YOUR CONCEPT HERE]">
       <span class="action-icon">🔮</span> Abstract Animate
     </button>
+    <button class="action-btn" data-prompt="Generate a 5-second 9:16 AI video using Kling 3.0 with this concept: [YOUR CONCEPT HERE]" data-select="[YOUR CONCEPT HERE]">
+      <span class="action-icon">🤖</span> AI Generate
+    </button>
     <button class="action-btn" data-prompt="Create a full viral content pipeline for the uploaded video: transcribe → find top 3 viral moments → extract clips → add captions → generate voiceover → compose final portrait clips.">
       <span class="action-icon">🚀</span> Full Pipeline
     </button>
@@ -113,16 +116,46 @@
     <button class="modal-close" id="configClose">✕</button>
     <h2 class="setup-title">Model Settings</h2>
 
-    <!-- API Keys (shared) -->
+    <!-- LLM API Keys -->
     <div class="cfg-keys-row">
       <div class="cfg-key-field">
-        <label class="cfg-label">OpenAI API Key</label>
+        <label class="cfg-label">OpenAI API Key <span class="cfg-key-note">(Sora + GPT)</span></label>
         <input type="password" class="cfg-input" id="openaiKey" placeholder="sk-…" autocomplete="off"/>
       </div>
       <div class="cfg-key-field">
-        <label class="cfg-label">Anthropic API Key</label>
+        <label class="cfg-label">Anthropic API Key <span class="cfg-key-note">(Claude)</span></label>
         <input type="password" class="cfg-input" id="anthropicKey" placeholder="sk-ant-…" autocomplete="off"/>
       </div>
+    </div>
+
+    <!-- Video Generation API Keys -->
+    <p class="cfg-section-label">AI Video Generation Keys</p>
+    <div class="cfg-keys-row">
+      <div class="cfg-key-field">
+        <label class="cfg-label">Kling API Key <span class="cfg-key-note">(Kling 3.0)</span></label>
+        <input type="password" class="cfg-input" id="klingKey" placeholder="…" autocomplete="off"/>
+      </div>
+      <div class="cfg-key-field">
+        <label class="cfg-label">Luma API Key <span class="cfg-key-note">(Dream Machine)</span></label>
+        <input type="password" class="cfg-input" id="lumaKey" placeholder="…" autocomplete="off"/>
+      </div>
+    </div>
+    <div class="cfg-keys-row">
+      <div class="cfg-key-field">
+        <label class="cfg-label">Runway API Key <span class="cfg-key-note">(Gen-4 Turbo)</span></label>
+        <input type="password" class="cfg-input" id="runwayKey" placeholder="…" autocomplete="off"/>
+      </div>
+      <div class="cfg-key-field">
+        <label class="cfg-label">Replicate API Key <span class="cfg-key-note">(Wan 2.5)</span></label>
+        <input type="password" class="cfg-input" id="replicateKey" placeholder="r8_…" autocomplete="off"/>
+      </div>
+    </div>
+    <div class="cfg-keys-row">
+      <div class="cfg-key-field">
+        <label class="cfg-label">Google API Key <span class="cfg-key-note">(Veo 3.1)</span></label>
+        <input type="password" class="cfg-input" id="googleKey" placeholder="AIza…" autocomplete="off"/>
+      </div>
+      <div class="cfg-key-field"></div>
     </div>
 
     <!-- Slot tabs -->

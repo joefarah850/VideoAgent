@@ -194,6 +194,11 @@ async def get_config():
             "tasks_model":     LLM_CONFIG["tasks_model"],
             "has_openai_key":     bool(LLM_CONFIG["openai_key"]),
             "has_anthropic_key":  bool(LLM_CONFIG["anthropic_key"]),
+            "has_kling_key":      bool(LLM_CONFIG["kling_key"]),
+            "has_luma_key":       bool(LLM_CONFIG["luma_key"]),
+            "has_runway_key":     bool(LLM_CONFIG["runway_key"]),
+            "has_replicate_key":  bool(LLM_CONFIG["replicate_key"]),
+            "has_google_key":     bool(LLM_CONFIG["google_key"]),
         },
         "catalogue": MODEL_CATALOGUE,
     }
@@ -206,6 +211,11 @@ class ConfigSaveRequest(BaseModel):
     tasks_model: str
     openai_key: str = ""
     anthropic_key: str = ""
+    kling_key: str = ""
+    luma_key: str = ""
+    runway_key: str = ""
+    replicate_key: str = ""
+    google_key: str = ""
 
 
 @app.post("/api/config")
@@ -219,20 +229,28 @@ async def save_config(req: ConfigSaveRequest):
     LLM_CONFIG["agent_model"]    = req.agent_model
     LLM_CONFIG["tasks_provider"] = req.tasks_provider
     LLM_CONFIG["tasks_model"]    = req.tasks_model
-    if req.openai_key:
-        LLM_CONFIG["openai_key"]    = req.openai_key
-    if req.anthropic_key:
-        LLM_CONFIG["anthropic_key"] = req.anthropic_key
 
-    _write_env({
+    optional_keys = {
+        "openai_key":    ("OPENAI_API_KEY",    req.openai_key),
+        "anthropic_key": ("ANTHROPIC_API_KEY", req.anthropic_key),
+        "kling_key":     ("KLING_API_KEY",     req.kling_key),
+        "luma_key":      ("LUMA_API_KEY",      req.luma_key),
+        "runway_key":    ("RUNWAY_API_KEY",    req.runway_key),
+        "replicate_key": ("REPLICATE_API_KEY", req.replicate_key),
+        "google_key":    ("GOOGLE_API_KEY",    req.google_key),
+    }
+    env_updates: dict[str, str] = {
         "AGENT_LLM_PROVIDER": req.agent_provider,
         "AGENT_LLM_MODEL":    req.agent_model,
         "TASKS_LLM_PROVIDER": req.tasks_provider,
         "TASKS_LLM_MODEL":    req.tasks_model,
-        **( {"OPENAI_API_KEY":    req.openai_key}    if req.openai_key    else {} ),
-        **( {"ANTHROPIC_API_KEY": req.anthropic_key} if req.anthropic_key else {} ),
-    })
+    }
+    for cfg_key, (env_key, value) in optional_keys.items():
+        if value:
+            LLM_CONFIG[cfg_key] = value
+            env_updates[env_key] = value
 
+    _write_env(env_updates)
     return {"ok": True}
 
 

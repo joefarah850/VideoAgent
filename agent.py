@@ -19,6 +19,7 @@ from tools.premiere  import (
     premiere_add_clip_to_timeline, premiere_add_text_caption,
     premiere_add_transition, premiere_export_sequence, premiere_run_jsx,
 )
+from tools.video_gen import generate_ai_video
 
 
 # ── Tool definitions (OpenAI / Ollama function-calling format) ─────────────────
@@ -250,6 +251,48 @@ _RAW_TOOLS = [
             "required": ["idea"],
         },
     },
+    # ── AI video generation ───────────────────────────────────────────────────
+    {
+        "name": "generate_ai_video",
+        "description": (
+            "Generate a video from a text prompt using a cloud AI video model. "
+            "Supported providers: kling (Kling 3.0), luma (Luma Dream Machine), "
+            "runway (Runway Gen-4 Turbo), sora (OpenAI Sora 2), wan (Wan 2.5 via Replicate), "
+            "veo (Google Veo 3.1). "
+            "Use this when the user wants AI-generated footage rather than editing existing video."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": "Detailed visual description of the video to generate",
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": ["kling", "luma", "runway", "sora", "wan", "veo"],
+                    "description": "Which AI video model to use",
+                    "default": "kling",
+                },
+                "duration": {
+                    "type": "integer",
+                    "description": "Video duration in seconds (5-10 typical)",
+                    "default": 5,
+                },
+                "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["9:16", "16:9", "1:1"],
+                    "description": "Video aspect ratio (9:16 for Reels/TikTok, 16:9 for YouTube)",
+                    "default": "9:16",
+                },
+                "output_name": {
+                    "type": "string",
+                    "description": "Optional filename for the output video",
+                },
+            },
+            "required": ["prompt"],
+        },
+    },
     # ── Premiere Pro tools ────────────────────────────────────────────────────
     {
         "name": "premiere_get_project_info",
@@ -375,6 +418,7 @@ TOOL_MAP: dict[str, Any] = {
     "list_voices":              list_voices,
     "generate_content_ideas":       generate_content_ideas,
     "generate_video_script":        generate_video_script,
+    "generate_ai_video":            generate_ai_video,
     # Premiere Pro
     "premiere_get_project_info":    premiere_get_project_info,
     "premiere_create_sequence":     premiere_create_sequence,
@@ -432,6 +476,11 @@ The ONLY time you may ask a question is when you are completely blocked — e.g.
 == ANIMATION PIPELINE (no source video needed) ==
   generate_video_script -> craft_animation_prompt -> generate_animation ->
   generate_voiceover (if Voicebox available) -> compose_final_clip
+
+== AI VIDEO GENERATION (cloud, requires API key) ==
+  craft_animation_prompt -> generate_ai_video(provider=kling|luma|runway|sora|wan|veo) ->
+  compose_final_clip (optional: add captions/voiceover)
+  Use when user asks for Kling, Luma, Runway, Sora, Wan, or Veo generated video.
 
 == VIRAL CLIPS PIPELINE (source video required) ==
 If Premiere is connected:
