@@ -250,8 +250,8 @@ body { display: flex; height: 100vh; }
 .prompt-editor-input {
   background: var(--surface3); border: 1px solid var(--border); border-radius: 8px;
   color: var(--text); padding: 10px 14px; font-size: 13px; font-family: var(--font);
-  resize: vertical; min-height: 100px; max-height: 300px; outline: none; line-height: 1.6;
-  width: 100%;
+  resize: vertical; min-height: 120px; max-height: 300px; outline: none; line-height: 1.6;
+  width: 100%; box-sizing: border-box;
 }
 .prompt-editor-input:focus { border-color: var(--accent); }
 .prompt-editor-footer { display: flex; justify-content: flex-end; }

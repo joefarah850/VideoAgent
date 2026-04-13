@@ -614,7 +614,23 @@ The ONLY time you may ask a question is when you are completely blocked — e.g.
   ONLY use this when the user explicitly says "Kling", "Luma", "Runway", "Sora", "Wan", or "Veo".
   NEVER use generate_ai_video just because no other method is available — fall back to generate_animation instead.
 
-== VIRAL CLIPS PIPELINE (source video required) ==
+== PREMIERE PRO EDITING PIPELINE (polish an existing full video) ==
+Use this when the user wants to EDIT their video in Premiere (NOT extract viral clips):
+  1. transcribe_video  ← to find bad takes / flubs / long pauses
+  2. premiere_get_project_info
+  3. premiere_create_sequence (name it after the video)
+  4. premiere_import_clip
+  5. premiere_add_clip_to_timeline for each good section using in_point/out_point to
+     skip over bad takes, mistakes, and long silences identified from the transcript
+  6. premiere_add_text_caption at key moments (highlight important phrases)
+  7. premiere_add_transition between each section (cross_dissolve, 0.5s)
+  8. premiere_export_sequence
+Do NOT call find_viral_moments for this pipeline. You are editing the whole video,
+not extracting short clips.
+
+== VIRAL CLIPS PIPELINE (extract best short clips from a long video) ==
+Use this ONLY when the user says "extract viral clips", "find viral moments", or
+"make shorts from this video". Do NOT use for general Premiere editing.
 If Premiere is connected:
   transcribe_video -> find_viral_moments -> premiere_get_project_info ->
   premiere_create_sequence -> [for each clip] premiere_import_clip +

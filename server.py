@@ -119,32 +119,8 @@ async def chat(req: ChatRequest):
     return {"session_id": session_id, "conversation_id": conv_id}
 
 
-# ── WebSocket: stream events ───────────────────────────────────────────────────
-
-@app.websocket("/ws/{session_id}")
-async def websocket_endpoint(ws: WebSocket, session_id: str):
-    await ws.accept()
-    queue = _sessions.get(session_id)
-    if queue is None:
-        await ws.send_json({"type": "error", "content": "Invalid session"})
-        await ws.close()
-        return
-
-    try:
-        while True:
-            event = await asyncio.wait_for(queue.get(), timeout=300)
-            await ws.send_json(event)
-            if event.get("type") in ("done", "error"):
-                break
-    except asyncio.TimeoutError:
-        await ws.send_json({"type": "error", "content": "Session timed out"})
-    except WebSocketDisconnect:
-        pass
-    finally:
-        _sessions.pop(session_id, None)
-
-
-# ── WebSocket: Premiere Pro CEP panel bridge ──────────────────────────────────
+# ── WebSocket: Premiere Pro CEP panel bridge ─────────────────────────────────
+# IMPORTANT: must be defined BEFORE /ws/{session_id} or FastAPI matches it wrong
 
 @app.websocket("/ws/premiere")
 async def premiere_ws(ws: WebSocket):
@@ -175,6 +151,31 @@ async def premiere_ws(ws: WebSocket):
     finally:
         _premiere_bridge.clear_panel()
         print("🎬  Premiere Pro panel disconnected")
+
+
+# ── WebSocket: stream agent events ────────────────────────────────────────────
+
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(ws: WebSocket, session_id: str):
+    await ws.accept()
+    queue = _sessions.get(session_id)
+    if queue is None:
+        await ws.send_json({"type": "error", "content": "Invalid session"})
+        await ws.close()
+        return
+
+    try:
+        while True:
+            event = await asyncio.wait_for(queue.get(), timeout=300)
+            await ws.send_json(event)
+            if event.get("type") in ("done", "error"):
+                break
+    except asyncio.TimeoutError:
+        await ws.send_json({"type": "error", "content": "Session timed out"})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _sessions.pop(session_id, None)
 
 
 # ── REST: capability status ───────────────────────────────────────────────────

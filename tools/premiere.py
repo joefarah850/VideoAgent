@@ -72,18 +72,51 @@ def premiere_create_sequence(
     """
     Create a new sequence in the active Premiere Pro project.
     Defaults to 1080×1920 portrait 30fps (Instagram Reels).
+    Uses the qe (Quality Engineering) API to avoid opening dialogs.
     """
     return _jsx_json(f"""(function() {{
   try {{
     var seqName = {json.dumps(name)};
-    var newSeq  = app.project.createNewSequence(seqName, "seq-" + (new Date().getTime()));
+
+    // Use qe API (silent, no dialog) — available in Premiere CC 2019+
+    app.enableQE();
+    var qeProj = qe.project;
+
+    // Pick a preset close to desired dimensions
+    // Portrait 1080x1920 → use "DSLR 1080p30" then override settings
+    var presetPath = "DSLR 1080p30";
+
+    // Try to create via qe first
+    try {{
+      qeProj.newSequence(seqName, presetPath);
+    }} catch(qeErr) {{
+      // Fallback: create via standard API (may show dialog in older versions)
+      app.project.createNewSequence(seqName, "seq-" + (new Date().getTime()));
+    }}
+
+    // Find the newly created sequence (it becomes active)
+    var newSeq = app.project.activeSequence;
+    if (!newSeq) {{
+      // Find by name
+      for (var i = 0; i < app.project.sequences.numSequences; i++) {{
+        if (app.project.sequences[i].name === seqName) {{
+          newSeq = app.project.sequences[i];
+          break;
+        }}
+      }}
+    }}
+    if (!newSeq) return JSON.stringify({{ error: "Sequence was not created" }});
+
+    // Override settings to match requested dimensions
     var settings = newSeq.getSettings();
-    settings.videoFrameRate  = new Time();
-    settings.videoFrameRate.seconds = 1.0 / {fps};
+    var fr = new Time();
+    fr.seconds = 1.0 / {fps};
+    settings.videoFrameRate   = fr;
     settings.videoFrameWidth  = {width};
     settings.videoFrameHeight = {height};
     newSeq.setSettings(settings);
     app.project.activeSequence = newSeq;
+
     return JSON.stringify({{ success: true, sequenceID: newSeq.sequenceID, name: seqName }});
   }} catch(e) {{ return JSON.stringify({{ error: e.toString() }}); }}
 }})();""")

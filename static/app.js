@@ -318,19 +318,21 @@ document.querySelectorAll('.action-btn').forEach(btn => {
     const prompt     = btn.dataset.prompt;
     const selectText = btn.dataset.select;
 
+    // Skip buttons that don't have a prompt template (e.g. Setup button)
+    if (!prompt) return;
+
     // Open prompt editor with the template
     promptEditorInput.value = prompt;
     promptEditor.classList.remove('hidden');
     promptEditorInput.focus();
 
-    // Highlight the placeholder text if present
+    // Highlight the placeholder text if present, otherwise put cursor at end
     if (selectText) {
       const start = prompt.indexOf(selectText);
       if (start !== -1) {
         promptEditorInput.setSelectionRange(start, start + selectText.length);
       }
     } else {
-      // Put cursor at end
       promptEditorInput.setSelectionRange(prompt.length, prompt.length);
     }
   });
