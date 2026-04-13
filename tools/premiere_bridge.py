@@ -65,12 +65,18 @@ def resolve(req_id: str, result: str | None, error: str | None) -> None:
 
 async def send_jsx(jsx_code: str, timeout: float = 60.0) -> str:
     """Coroutine: send JSX to the panel and await its response."""
+    # Wait up to 8s for the panel to connect (handles brief reconnect gaps)
     if _panel_ws is None:
-        raise RuntimeError(
-            "Premiere Pro is not connected.\n"
-            "Make sure Premiere Pro is open and the AI Video Agent panel is visible "
-            "(Window → Extensions → AI Video Agent)."
-        )
+        for _ in range(8):
+            await asyncio.sleep(1)
+            if _panel_ws is not None:
+                break
+        else:
+            raise RuntimeError(
+                "Premiere Pro is not connected.\n"
+                "Make sure Premiere Pro is open and the AI Video Agent panel is visible "
+                "(Window → Extensions → AI Video Agent)."
+            )
 
     req_id = str(uuid.uuid4())
     loop = asyncio.get_running_loop()

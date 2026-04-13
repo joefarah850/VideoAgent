@@ -28,6 +28,8 @@
           <CEFCommandLine>
             <Parameter>--allow-file-access-from-files</Parameter>
             <Parameter>--allow-running-insecure-content</Parameter>
+            <Parameter>--disable-web-security</Parameter>
+            <Parameter>--disable-features=BlockInsecurePrivateNetworkRequests</Parameter>
           </CEFCommandLine>
         </Resources>
         <Lifecycle>
