@@ -50,17 +50,20 @@ if errorlevel 1 (
     echo Adobe Premiere Pro already running
 )
 
-REM ── Start server ───────────────────────────────────────────────────────────
+REM ── Open browser after short delay (runs in background) ───────────────────
+start /B cmd /c "timeout /t 4 /nobreak >nul && start http://localhost:8000"
+
+REM ── Kill any leftover server on port 8000 ─────────────────────────────────
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":8000 " ^| findstr "LISTENING"') do (
+    echo Killing old server process %%P...
+    taskkill /PID %%P /F >nul 2>&1
+)
+
+REM ── Start server in foreground (closing this window stops the server) ──────
 echo Starting server on http://localhost:8000 ...
-start /B %PYTHON% server.py
-
-REM Wait for server then open browser
-timeout /t 4 /nobreak >nul
-start http://localhost:8000
-
+echo Close this window to stop the server.
 echo.
-echo Server is running.
-echo Blender runs headlessly when needed - no need to open it.
-echo Close this window to stop.
+%PYTHON% server.py
 echo.
+echo Server stopped. Press any key to close...
 pause

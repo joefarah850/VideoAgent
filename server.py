@@ -159,6 +159,10 @@ async def premiere_ws(ws: WebSocket):
     try:
         while True:
             data = await ws.receive_json()
+            # Handle keepalive ping from panel
+            if data.get("ping"):
+                await ws.send_json({"pong": True})
+                continue
             req_id = data.get("id")
             if req_id:
                 _premiere_bridge.resolve(
@@ -361,12 +365,13 @@ async def _setup_stream() -> AsyncIterator[str]:
             return
 
     # ── Step 2: Pull model ────────────────────────────────────────────────────
-    yield sse("model_pull", "running", f"Pulling model {OLLAMA_MODEL} (this may take a few minutes)…")
+    _model = LLM_CONFIG["agent_model"]
+    yield sse("model_pull", "running", f"Pulling model {_model} (this may take a few minutes)…")
     await asyncio.sleep(0)
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            "ollama", "pull", OLLAMA_MODEL,
+            "ollama", "pull", _model,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
@@ -376,7 +381,7 @@ async def _setup_stream() -> AsyncIterator[str]:
                 yield sse("model_pull", "running", text)
         await proc.wait()
         if proc.returncode == 0:
-            yield sse("model_pull", "ok", f"{OLLAMA_MODEL} ready")
+            yield sse("model_pull", "ok", f"{_model} ready")
         else:
             yield sse("model_pull", "error", f"ollama pull failed (exit {proc.returncode})")
             return

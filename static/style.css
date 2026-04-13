@@ -230,6 +230,37 @@ body { display: flex; height: 100vh; }
 }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+/* ── Prompt editor ────────────────────────────────────────────────────────── */
+.prompt-editor {
+  border-top: 1px solid var(--accent);
+  background: var(--surface2);
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 20px; flex-shrink: 0;
+}
+.prompt-editor.hidden { display: none; }
+.prompt-editor-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.prompt-editor-title { font-size: 12px; font-weight: 600; color: var(--accent); }
+.prompt-editor-close {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px;
+}
+.prompt-editor-close:hover { color: var(--text); background: var(--surface3); }
+.prompt-editor-input {
+  background: var(--surface3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 10px 14px; font-size: 13px; font-family: var(--font);
+  resize: vertical; min-height: 100px; max-height: 300px; outline: none; line-height: 1.6;
+  width: 100%;
+}
+.prompt-editor-input:focus { border-color: var(--accent); }
+.prompt-editor-footer { display: flex; justify-content: flex-end; }
+.prompt-editor-send {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.prompt-editor-send:hover { background: #6d28d9; }
+
 /* ── Input area ───────────────────────────────────────────────────────────── */
 .input-area {
   display: flex; align-items: flex-end; gap: 10px;

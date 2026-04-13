@@ -308,21 +308,51 @@ async function loadFiles() {
 }
 
 /* ── Quick action buttons ───────────────────────────────────────────────────── */
+const promptEditor      = document.getElementById('promptEditor');
+const promptEditorInput = document.getElementById('promptEditorInput');
+const promptEditorClose = document.getElementById('promptEditorClose');
+const promptEditorSend  = document.getElementById('promptEditorSend');
+
 document.querySelectorAll('.action-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    const prompt = btn.dataset.prompt;
+    const prompt     = btn.dataset.prompt;
     const selectText = btn.dataset.select;
-    chatInput.value = prompt;
-    chatInput.dispatchEvent(new Event('input'));
-    chatInput.focus();
-    // If there's a placeholder to select, highlight it so the user just types to replace it
+
+    // Open prompt editor with the template
+    promptEditorInput.value = prompt;
+    promptEditor.classList.remove('hidden');
+    promptEditorInput.focus();
+
+    // Highlight the placeholder text if present
     if (selectText) {
       const start = prompt.indexOf(selectText);
       if (start !== -1) {
-        chatInput.setSelectionRange(start, start + selectText.length);
+        promptEditorInput.setSelectionRange(start, start + selectText.length);
       }
+    } else {
+      // Put cursor at end
+      promptEditorInput.setSelectionRange(prompt.length, prompt.length);
     }
   });
+});
+
+promptEditorClose.addEventListener('click', () => {
+  promptEditor.classList.add('hidden');
+  promptEditorInput.value = '';
+});
+
+function sendFromEditor() {
+  const text = promptEditorInput.value.trim();
+  if (!text) return;
+  promptEditor.classList.add('hidden');
+  chatInput.value = text;
+  promptEditorInput.value = '';
+  sendMessage();
+}
+
+promptEditorSend.addEventListener('click', sendFromEditor);
+promptEditorInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFromEditor(); }
 });
 
 /* ── Video modal ────────────────────────────────────────────────────────────── */

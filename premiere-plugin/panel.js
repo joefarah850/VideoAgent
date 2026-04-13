@@ -17,32 +17,54 @@ const AGENT_WS    = "ws://localhost:8000";
  */
 let _bridgeWs = null;
 let _bridgeReconnectTimer = null;
+let _bridgePingTimer = null;
 
 function connectPremierebridge() {
     if (_bridgeWs && (_bridgeWs.readyState === WebSocket.CONNECTING ||
                        _bridgeWs.readyState === WebSocket.OPEN)) return;
 
-    _bridgeWs = new WebSocket(AGENT_WS + "/ws/premiere");
+    clearTimeout(_bridgePingTimer);
+
+    try {
+        _bridgeWs = new WebSocket(AGENT_WS + "/ws/premiere");
+    } catch(e) {
+        _bridgeReconnectTimer = setTimeout(connectPremierebridge, 3000);
+        return;
+    }
 
     _bridgeWs.onopen = () => {
         setServer(true);
         clearTimeout(_bridgeReconnectTimer);
+        // Send a keepalive ping every 20s to prevent Premiere dropping the connection
+        _bridgePingTimer = setInterval(() => {
+            if (_bridgeWs && _bridgeWs.readyState === WebSocket.OPEN) {
+                try { _bridgeWs.send(JSON.stringify({ ping: true })); } catch(_) {}
+            }
+        }, 20000);
     };
 
     _bridgeWs.onmessage = ({ data }) => {
         let msg;
         try { msg = JSON.parse(data); } catch (_) { return; }
+        // Ignore pong responses
+        if (msg.pong) return;
         if (!msg.id || !msg.jsx) return;
 
         // Execute the JSX inside Premiere Pro and send back the result
         cs.evalScript(msg.jsx, (result) => {
-            _bridgeWs.send(JSON.stringify({ id: msg.id, result: result || "" }));
+            try {
+                _bridgeWs.send(JSON.stringify({ id: msg.id, result: result || "" }));
+            } catch(e) {}
         });
     };
 
-    _bridgeWs.onerror = () => {};
+    _bridgeWs.onerror = () => {
+        setServer(false);
+    };
 
     _bridgeWs.onclose = () => {
+        setServer(false);
+        clearInterval(_bridgePingTimer);
         // Reconnect after 3s (handles server restarts)
         _bridgeReconnectTimer = setTimeout(connectPremierebridge, 3000);
     };

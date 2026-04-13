@@ -76,6 +76,18 @@
   <!-- Chat messages -->
   <div class="chat-area" id="chatArea"></div>
 
+  <!-- Prompt editor (shown when a quick action is clicked) -->
+  <div class="prompt-editor hidden" id="promptEditor">
+    <div class="prompt-editor-header">
+      <span class="prompt-editor-title">Edit prompt before sending</span>
+      <button class="prompt-editor-close" id="promptEditorClose">✕</button>
+    </div>
+    <textarea class="prompt-editor-input" id="promptEditorInput"></textarea>
+    <div class="prompt-editor-footer">
+      <button class="prompt-editor-send" id="promptEditorSend">Send ↑</button>
+    </div>
+  </div>
+
   <!-- Input -->
   <div class="input-area">
     <textarea

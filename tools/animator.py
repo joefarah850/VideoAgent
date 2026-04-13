@@ -73,10 +73,12 @@ def _run_blender(script_path: str, extra_args: list[str] | None = None) -> str:
         *(extra_args or []),
     ]
     print(f"🎨  Running Blender: {' '.join(cmd[:4])} …")
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    result = subprocess.run(cmd, capture_output=True, timeout=600)
+    stdout = result.stdout.decode("utf-8", errors="ignore")
+    stderr = result.stderr.decode("utf-8", errors="ignore")
     if result.returncode != 0:
-        raise RuntimeError(f"Blender error:\n{result.stderr[-1000:]}")
-    return result.stdout
+        raise RuntimeError(f"Blender error:\n{stderr[-1000:]}")
+    return stdout
 
 
 # ── Main generation function ───────────────────────────────────────────────────
@@ -114,9 +116,24 @@ def generate_animation(
     script_path = str(TEMP_DIR / f"bpy_{abs(hash(prompt))}.py")
     Path(script_path).write_text(script)
 
-    _run_blender(script_path)
+    blender_output = _run_blender(script_path)
 
-    # Blender renders frames as PNGs; combine them into mp4
+    # Check frames were actually rendered
+    rendered_frames = list(Path(render_dir).glob("frame_*.png"))
+    if not rendered_frames:
+        # Blender ran but produced no frames — likely a script error
+        # Try once more with the space_scene template as fallback
+        print("⚠️  No frames rendered — retrying with space_scene template")
+        script = _get_template_script("space_scene", prompt, dur, render_dir)
+        Path(script_path).write_text(script)
+        _run_blender(script_path)
+        rendered_frames = list(Path(render_dir).glob("frame_*.png"))
+        if not rendered_frames:
+            raise RuntimeError(
+                f"Blender rendered 0 frames. Output:\n{blender_output[-800:]}"
+            )
+
+    # Combine PNG frames into mp4
     _frames_to_video(render_dir, out_path, fps=30)
     print(f"✅  Animation saved to {out_path}")
     return out_path

@@ -126,7 +126,18 @@ _RAW_TOOLS = [
             "properties": {
                 "video_path":     {"type": "string"},
                 "voiceover_path": {"type": "string", "description": "Optional path to voiceover audio"},
-                "captions":       {"type": "array",  "description": "Optional caption segments"},
+                "captions": {
+                    "type": "array",
+                    "description": "Optional caption segments",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "start": {"type": "number"},
+                            "end":   {"type": "number"},
+                            "text":  {"type": "string"},
+                        },
+                    },
+                },
                 "music_path":     {"type": "string", "description": "Optional background music path"},
                 "music_volume":   {"type": "number", "default": 0.12},
                 "output_name":    {"type": "string"},
@@ -240,11 +251,22 @@ _RAW_TOOLS = [
     },
     {
         "name": "generate_video_script",
-        "description": "Expand a content idea into a full timed script with b-roll prompts for animation generation.",
+        "description": "Expand a content idea into a full timed script with b-roll prompts for animation generation. Pass the full idea object from generate_content_ideas as the 'idea' parameter.",
         "parameters": {
             "type": "object",
             "properties": {
-                "idea":             {"type": "object", "description": "Idea dict from generate_content_ideas"},
+                "idea": {
+                    "type": "object",
+                    "description": "The full idea dict returned by generate_content_ideas (contains title, hook, format, visual_concept etc.)",
+                    "properties": {
+                        "title":             {"type": "string"},
+                        "hook":              {"type": "string"},
+                        "format":            {"type": "string"},
+                        "visual_concept":    {"type": "string"},
+                        "script_outline":    {"type": "string"},
+                        "estimated_virality":{"type": "string"},
+                    },
+                },
                 "duration_seconds": {"type": "integer", "default": 45},
                 "tone":             {"type": "string", "default": "inspirational and dramatic"},
             },
@@ -431,6 +453,93 @@ TOOL_MAP: dict[str, Any] = {
 }
 
 
+def _parse_text_tool_calls(text: str) -> list[dict] | None:
+    """
+    Some local models (Ollama llama3.1, mistral, etc.) output tool calls as
+    plain JSON text instead of using the function-calling API fields.
+    Detects and parses these patterns so the agent can still execute them.
+
+    Handles:
+      {"name": "tool_name", "arguments": {...}}
+      {"name": "tool_name", "parameters": {...}}
+      [{"name": ...}, ...]   (multiple calls)
+    """
+    text = text.strip()
+    # Strip markdown code fences if present
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+
+    try:
+        parsed = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        # Try finding JSON object/array inside a larger text blob
+        for start_ch, end_ch in [('{', '}'), ('[', ']')]:
+            s = text.find(start_ch)
+            if s == -1:
+                continue
+            # find matching close
+            depth = 0
+            for i, ch in enumerate(text[s:], s):
+                if ch == start_ch:
+                    depth += 1
+                elif ch == end_ch:
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            parsed = json.loads(text[s:i+1])
+                            break
+                        except (json.JSONDecodeError, ValueError):
+                            pass
+            else:
+                continue
+            break
+        else:
+            return None
+
+    # Normalise to list
+    if isinstance(parsed, dict):
+        parsed = [parsed]
+    if not isinstance(parsed, list):
+        return None
+
+    results = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        # Try every known key pattern for the function name
+        name = (item.get("name") or item.get("tool") or item.get("function")
+                or item.get("tool_name") or item.get("action"))
+        # Some models put the name in "items" when they hallucinate a schema format
+        if not name:
+            name = item.get("items")
+        # Args under various key names
+        args = (item.get("arguments") or item.get("parameters") or item.get("params")
+                or item.get("input") or item.get("args") or {})
+        if not name:
+            continue
+        # name might be a dict like {"name": "tool_name"} from hallucinated schemas
+        if isinstance(name, dict):
+            name = name.get("name") or name.get("function")
+        if not isinstance(name, str):
+            continue
+        name = name.strip()
+        if name not in TOOL_MAP:
+            continue
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except (json.JSONDecodeError, ValueError):
+                args = {}
+        if not isinstance(args, dict):
+            args = {}
+        results.append({"name": name, "arguments": args})
+
+    return results if results else None
+
+
 def _coerce_tool_input(tool_input: dict[str, Any]) -> dict[str, Any]:
     """
     Local models sometimes serialize nested objects as JSON strings.
@@ -453,7 +562,27 @@ def _call_tool(name: str, tool_input: dict[str, Any]) -> Any:
     if fn is None:
         return {"error": f"Unknown tool: {name}"}
     try:
-        return fn(**_coerce_tool_input(tool_input))
+        coerced = _coerce_tool_input(tool_input)
+        # If generate_video_script is called with idea fields at the top level
+        # instead of nested under "idea", wrap them automatically
+        if name == "generate_video_script" and "idea" not in coerced:
+            idea_keys = {"title", "hook", "format", "visual_concept", "script_outline",
+                         "estimated_virality", "best_posting_time"}
+            extracted = {k: coerced.pop(k) for k in list(coerced.keys()) if k in idea_keys}
+            if extracted:
+                coerced["idea"] = extracted
+            elif "title" not in coerced:
+                return {"error": "generate_video_script requires an 'idea' argument"}
+
+        # If find_viral_moments is called without transcript_data, transcribe first
+        if name == "find_viral_moments" and "transcript_data" not in coerced:
+            video_path = coerced.pop("video_path", None)
+            if video_path:
+                from tools.analyzer import transcribe_video as _transcribe
+                coerced["transcript_data"] = _transcribe(video_path)
+            else:
+                return {"error": "find_viral_moments requires transcript_data. Call transcribe_video first."}
+        return fn(**coerced)
     except Exception as exc:
         traceback.print_exc()
         return {"error": str(exc)}
@@ -473,14 +602,17 @@ When the user says "yes", "go ahead", "do it", "sure", "ok", or any affirmative 
 
 The ONLY time you may ask a question is when you are completely blocked — e.g. no video file has been provided and none exists to work with. In that case ask ONE short question to unblock yourself, then act immediately on the answer.
 
-== ANIMATION PIPELINE (no source video needed) ==
+== ANIMATION PIPELINE (default for all animation requests) ==
   generate_video_script -> craft_animation_prompt -> generate_animation ->
   generate_voiceover (if Voicebox available) -> compose_final_clip
+  Use this for ANY request involving 3D animation, Blender, or generating video from scratch.
+  generate_animation uses Blender locally — no API key needed.
 
-== AI VIDEO GENERATION (cloud, requires API key) ==
+== AI VIDEO GENERATION (cloud, ONLY when user explicitly names a provider) ==
   craft_animation_prompt -> generate_ai_video(provider=kling|luma|runway|sora|wan|veo) ->
   compose_final_clip (optional: add captions/voiceover)
-  Use when user asks for Kling, Luma, Runway, Sora, Wan, or Veo generated video.
+  ONLY use this when the user explicitly says "Kling", "Luma", "Runway", "Sora", "Wan", or "Veo".
+  NEVER use generate_ai_video just because no other method is available — fall back to generate_animation instead.
 
 == VIRAL CLIPS PIPELINE (source video required) ==
 If Premiere is connected:
@@ -502,6 +634,22 @@ premiere_run_jsx (arbitrary JSX for anything else)
 - Report file paths after each tool completes
 - Be brief — one sentence per step
 - Never list plans or ask for approval mid-task
+
+== CRITICAL: ALWAYS USE TOOLS ==
+You MUST call tools to do any work. NEVER generate content, ideas, scripts, animations,
+or file outputs yourself — always invoke the appropriate tool.
+Examples:
+- User wants video ideas → call generate_content_ideas
+- User wants a script → call generate_video_script
+- User wants an animation → call generate_animation
+- User wants viral clips → call transcribe_video then find_viral_moments
+If you generate content as plain text or JSON without calling a tool, that is WRONG.
+
+== TOOL CALL FORMAT ==
+When calling a tool, output ONLY this exact JSON, nothing else before or after:
+{"name": "tool_name", "arguments": {"param1": "value1", "param2": "value2"}}
+Do NOT wrap it in "type", "items", "function", "tool_calls", or any other key.
+Do NOT add explanation text before or after the JSON when calling a tool.
 """
 
 
@@ -579,10 +727,22 @@ def run_agent(user_request: str, emit=None, history: list | None = None) -> str:
         assembled_text = "".join(text_parts)
         final_text = assembled_text or final_text
 
-        # ── No tool calls – agent is done ──────────────────────────────────────
-        if finish_reason == "stop" or not tool_call_acc:
-            _emit({"type": "done", "content": assembled_text})
-            return assembled_text
+        # ── No structured tool calls – check if model wrote JSON tool call as text ──
+        was_text_tool_call = False
+        if not tool_call_acc:
+            text_calls = _parse_text_tool_calls(assembled_text) if assembled_text else None
+            if text_calls:
+                was_text_tool_call = True
+                for i, tc in enumerate(text_calls):
+                    tool_call_acc[i] = {
+                        "id":        f"text_call_{i}",
+                        "name":      tc["name"],
+                        "arguments": json.dumps(tc["arguments"]),
+                    }
+            else:
+                # Genuinely done – no tool calls found
+                _emit({"type": "done", "content": assembled_text})
+                return assembled_text
 
         # ── Execute tool calls ─────────────────────────────────────────────────
         # Reconstruct assistant message with tool_calls for the history
@@ -595,13 +755,19 @@ def run_agent(user_request: str, emit=None, history: list | None = None) -> str:
                 "function": {"name": tc["name"], "arguments": tc["arguments"]},
             })
 
-        messages.append({
-            "role":       "assistant",
-            "content":    assembled_text or None,
-            "tool_calls": assistant_tool_calls,
-        })
-
         # Execute each tool and collect results
+        # For text-based tool calls use plain user/assistant turns — local models
+        # don't understand the structured tool role in history and start echoing it.
+        if was_text_tool_call:
+            tool_results_for_history = []
+
+        if not was_text_tool_call:
+            messages.append({
+                "role":       "assistant",
+                "content":    assembled_text or None,
+                "tool_calls": assistant_tool_calls,
+            })
+
         for tc_msg in assistant_tool_calls:
             fn_name = tc_msg["function"]["name"]
             try:
@@ -632,10 +798,29 @@ def run_agent(user_request: str, emit=None, history: list | None = None) -> str:
                 "file_path": result if is_file else None,
             })
 
-            messages.append({
-                "role":         "tool",
-                "tool_call_id": tc_msg["id"],
-                "content":      result_str,
-            })
+            if was_text_tool_call:
+                tool_results_for_history.append(
+                    f"Tool `{fn_name}` result:\n{result_str[:3000]}"
+                )
+            else:
+                messages.append({
+                    "role":         "tool",
+                    "tool_call_id": tc_msg["id"],
+                    "content":      result_str,
+                })
+
+        # For text tool calls: inject results as a single user message so the
+        # local model understands the context without seeing raw API formats
+        if was_text_tool_call:
+            combined = "\n\n---\n\n".join(tool_results_for_history)
+            messages.append({"role": "assistant", "content": "(executed tools)"})
+            messages.append({"role": "user", "content": (
+                f"Tool results:\n\n{combined}\n\n"
+                "IMPORTANT: Use these results to continue the task. "
+                "If there are more tools to call, output the next tool call as JSON now. "
+                "Do NOT repeat previous tool calls. Do NOT echo the results back. "
+                "Do NOT output plain text unless all tools are done and you are giving the final answer."
+            )})
+
 
     return final_text
