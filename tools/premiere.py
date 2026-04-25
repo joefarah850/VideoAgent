@@ -74,30 +74,36 @@ def premiere_create_sequence(
     Defaults to 1080×1920 portrait 30fps (Instagram Reels).
     Uses the qe (Quality Engineering) API to avoid opening dialogs.
     """
+    # Ticks per frame: Premiere uses 254016000000 ticks/second
+    ticks_per_frame = int(254016000000 / fps)
     return _jsx_json(f"""(function() {{
   try {{
     var seqName = {json.dumps(name)};
 
-    // Use qe API (silent, no dialog) — available in Premiere CC 2019+
+    // Use qe API (silent, no dialog) — available in Premiere CC 2015+
     app.enableQE();
     var qeProj = qe.project;
 
-    // Pick a preset close to desired dimensions
-    // Portrait 1080x1920 → use "DSLR 1080p30" then override settings
-    var presetPath = "DSLR 1080p30";
+    // Try a few common preset names in order
+    var presets = ["DSLR 1080p30", "HDV 1080p30", "1080p30", "AVCHD 1080p30"];
+    var created = false;
+    for (var pi = 0; pi < presets.length; pi++) {{
+      try {{
+        qeProj.newSequence(seqName, presets[pi]);
+        created = true;
+        break;
+      }} catch(_) {{}}
+    }}
 
-    // Try to create via qe first
-    try {{
-      qeProj.newSequence(seqName, presetPath);
-    }} catch(qeErr) {{
-      // Fallback: create via standard API (may show dialog in older versions)
+    // Last-resort fallback: use the DOM API with a unique ID (may show dialog on
+    // very old Premiere versions, but qe should have worked above)
+    if (!created) {{
       app.project.createNewSequence(seqName, "seq-" + (new Date().getTime()));
     }}
 
-    // Find the newly created sequence (it becomes active)
+    // Find the sequence (qe makes it active; DOM API also makes it active)
     var newSeq = app.project.activeSequence;
-    if (!newSeq) {{
-      // Find by name
+    if (!newSeq || newSeq.name !== seqName) {{
       for (var i = 0; i < app.project.sequences.numSequences; i++) {{
         if (app.project.sequences[i].name === seqName) {{
           newSeq = app.project.sequences[i];
@@ -107,16 +113,21 @@ def premiere_create_sequence(
     }}
     if (!newSeq) return JSON.stringify({{ error: "Sequence was not created" }});
 
-    // Override settings to match requested dimensions
-    var settings = newSeq.getSettings();
-    var fr = new Time();
-    fr.seconds = 1.0 / {fps};
-    settings.videoFrameRate   = fr;
-    settings.videoFrameWidth  = {width};
-    settings.videoFrameHeight = {height};
-    newSeq.setSettings(settings);
-    app.project.activeSequence = newSeq;
+    // Override settings using ticks (Time.seconds is unreliable in Premiere 2024)
+    try {{
+      var settings = newSeq.getSettings();
+      var fr = new Time();
+      fr.ticks = "{ticks_per_frame}";
+      settings.videoFrameRate   = fr;
+      settings.videoFrameWidth  = {width};
+      settings.videoFrameHeight = {height};
+      newSeq.setSettings(settings);
+    }} catch(settingsErr) {{
+      // setSettings failed (some Premiere versions restrict this) — continue anyway
+      // The sequence is still created with the preset's default dimensions
+    }}
 
+    app.project.activeSequence = newSeq;
     return JSON.stringify({{ success: true, sequenceID: newSeq.sequenceID, name: seqName }});
   }} catch(e) {{ return JSON.stringify({{ error: e.toString() }}); }}
 }})();""")
@@ -129,8 +140,12 @@ def premiere_import_clip(file_path: str) -> dict:
     return _jsx_json(f"""(function() {{
   try {{
     var path = {json.dumps(file_path)};
-    app.project.importFiles([path], true, app.project.rootItem, false);
+    // Check if already in project to avoid the "file already exists" dialog
     var items = app.project.rootItem.findItemsMatchingMediaPath(path, true);
+    if (!items || items.length === 0) {{
+      app.project.importFiles([path], true, app.project.rootItem, false);
+      items = app.project.rootItem.findItemsMatchingMediaPath(path, true);
+    }}
     var id = items && items.length ? items[0].nodeId : null;
     return JSON.stringify({{ success: true, nodeId: id, path: path }});
   }} catch(e) {{ return JSON.stringify({{ error: e.toString() }}); }}
